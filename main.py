@@ -17,13 +17,14 @@ from kivy.uix.widget import Widget
 
 
 class Bullet(Image):
-    def __init__(self, speed, **kwargs):
+    def __init__(self, speed, owner, **kwargs):
         super().__init__(**kwargs)
 
         self.source = "assets/images/bullet.png"
         self.size_hint = (None, None)
         self.size = (dp(10), dp(30))
         self.speed = speed
+        self.owner = owner
 
 class BaseShip(Image):
     def __init__(self, **kwargs):
@@ -42,7 +43,7 @@ class PlayerShip(BaseShip):
             self.x += self.speed
 
     def fire(self):
-        bullet = Bullet(speed=dp(10))
+        bullet = Bullet(speed=dp(10), owner="player")
         bullet.center_x = self.center_x
         bullet.y = self.top
         return bullet
@@ -58,7 +59,7 @@ class EnemyShip(BaseShip):
         self.y -= self.speed
 
     def fire(self):
-        bullet = Bullet(speed=dp(-8))
+        bullet = Bullet(speed=dp(-8), owner="enemy")
         bullet.center_x = self.center_x
         bullet.top = self.y
         return bullet
@@ -66,6 +67,9 @@ class EnemyShip(BaseShip):
 
 class MainScreen(MDScreen):
     ...
+
+class GameOverScreen(MDScreen):
+    pass
 
 class GameScreen(MDScreen):
     fps = 60
@@ -83,8 +87,23 @@ class GameScreen(MDScreen):
         self.spawn_delay = 2.0
 
     def on_enter(self, *args):
+        # [ЗМІНА] Очищення сцени від старих куль та ворогів перед новою грою
+        for enemy in self.enemies:
+            self.ids.front.remove_widget(enemy)
+        self.enemies.clear()
+
+        for bullet in self.bullets:
+            self.ids.front.remove_widget(bullet)
+        self.bullets.clear()
+
+        self.ids.ship.center_x = Window.width / 2
+        self.keys = {"left": False, "right": False, "fire": False}
+        self.spawn_timer = 0
+
+        # це вже було
         self.spawn_enemy()
         self.game_event = Clock.schedule_interval(self.update, 1 / self.fps)
+
 
     def on_leave(self, *args):
         if self.game_event:
@@ -136,9 +155,56 @@ class GameScreen(MDScreen):
         for bullet in self.bullets[:]:
             bullet.y += bullet.speed
 
-            if bullet.y > Window.height:
-                self.ids.front.remove_widget(bullet)
-                self.bullets.remove(bullet)
+            if bullet.y > Window.height or bullet.top < 0:
+                self.remove_bullet(bullet)
+
+        self.check_collisions()
+
+    # [ЗМІНА] Окремий метод для перевірки всіх зіткнень
+    def check_collisions(self):
+        # 1. Перевірка зіткнення корабля гравця з ворогами
+        for enemy in self.enemies[:]:
+            # collide_widget перевіряє, чи накладаються координати двох віджетів
+            if self.ids.ship.collide_widget(enemy):
+                self.game_over()
+                return  # Якщо гра завершена, далі не перевіряємо
+
+        # 2. Перевірка колізій куль
+        for bullet in self.bullets[:]:
+            # Якщо це куля гравця
+            if bullet.owner == "player":
+                for enemy in self.enemies[:]:
+                    if bullet.collide_widget(enemy):
+                        # Куля потрапила у ворога: видаляємо ворога та кулю
+                        self.ids.front.remove_widget(enemy)
+                        if enemy in self.enemies:
+                            self.enemies.remove(enemy)
+                        self.remove_bullet(bullet)
+                        break  # Кулю знищено, виходимо з внутрішнього циклу
+
+            # Якщо це куля ворога
+            elif bullet.owner == "enemy":
+                if bullet.collide_widget(self.ids.ship):
+                    # Куля потрапила в гравця: гра завершується
+                    self.remove_bullet(bullet)
+                    self.game_over()
+                    return
+
+    # [ЗМІНА] Окремий метод для безпечного видалення кулі
+    def remove_bullet(self, bullet):
+        if bullet in self.bullets:
+            self.ids.front.remove_widget(bullet)
+            self.bullets.remove(bullet)
+
+    # [ЗМІНА] Окремий метод для логіки програшу
+    def game_over(self):
+        # Зупиняємо таймер гри
+        if self.game_event:
+            self.game_event.cancel()
+            self.game_event = None
+        # Перекидаємо на екран програшу
+        self.manager.current = "game_over"
+
 
     def fire(self):
         bullet = Bullet()
