@@ -155,8 +155,8 @@ class GameScreen(MDScreen):
     def on_enter(self, *args):
         self.ids.back.clear_widgets()
         self.bg_layers = [
-            MoveBackground(image_source="assets/images/stars_far.png", speed=dp(1)),
-            MoveBackground(image_source="assets/images/stars_close.png", speed=dp(2.5))
+            MoveBackground(image_source="assets/images/stars_far.avif", speed=dp(1)),
+            MoveBackground(image_source="assets/images/stars_close.webp", speed=dp(2.5))
         ]
         for bg in self.bg_layers:
             self.ids.back.add_widget(bg)
