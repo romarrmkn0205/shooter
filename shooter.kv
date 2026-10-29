@@ -19,24 +19,20 @@
             size_hint_y: 0.7
             allow_stretch: True
 
-        MDButton:
+        MDRaisedButton:
+            text: "PLAY"
+            font_size: "40sp"
             pos_hint: {"center_x": 0.5, "center_y": 0.5}
             on_press:
                 root.manager.current = "game"
 
-            MDButtonText:
-                text: "PLAY"
-                font_size: "80sp"
 
-
-# [ЗМІНА] Задаємо правила оформлення для корабля гравця
 <PlayerShip>:
     source: "assets/images/rocket.png"
     size_hint: None, None
     size: dp(100), dp(200)
 
 
-# [ЗМІНА] Задаємо правила оформлення для ворожого корабля
 <EnemyShip>:
     source: "assets/images/monster.png"
     size: dp(80), dp(70)
@@ -58,16 +54,49 @@
 
             FloatLayout:
                 id: front
-                # [ЗМІНА] Використовуємо новий клас PlayerShip для гравця
                 PlayerShip:
                     id: ship
                     center_x: root.center_x
-                    y: dp(120)
+                    y: dp(70)
 
         FloatLayout:
             id: interface
 
-            # [ЗМІНА] Додано кнопку «pause» у правий верхній кут екрана гри
+            # [ЗМІНА] Смуга здоров'я (HP bar) з іконкою серця
+            MDBoxLayout:
+                orientation: "horizontal"
+                size_hint: None, None
+                size: dp(180), dp(40)
+                pos_hint: {"x": 0.03, "top": 0.97}
+                spacing: dp(8)
+
+                MDIcon:
+                    icon: "heart"
+                    theme_icon_color: "Custom"
+                    icon_color: 1, 0.2, 0.2, 1
+                    pos_hint: {"center_y": 0.5}
+
+                ProgressBar:
+                    value: (ship.hp / ship.max_hp) * 100 if ship.max_hp > 0 else 0
+                    pos_hint: {"center_y": 0.5}
+
+            # [ЗМІНА] Відображення таймера з іконкою годинника
+            MDBoxLayout:
+                orientation: "horizontal"
+                size_hint: None, None
+                size: dp(120), dp(40)
+                pos_hint: {"center_x": 0.5, "top": 0.97}
+                spacing: dp(5)
+
+                MDIcon:
+                    icon: "clock-outline"
+                    pos_hint: {"center_y": 0.5}
+
+                MDLabel:
+                    text: f"{int(root.timer)}s"
+                    halign: "left"
+                    pos_hint: {"center_y": 0.5}
+
             MDIconButton:
                 icon: "pause"
                 icon_size: "40dp"
@@ -98,6 +127,8 @@
                 # Пустий віджет, щоб розділити стрілки і кнопку пострілу
                 Widget:
 
+
+
                 # Кнопка ВОГОНЬ
                 MDIconButton:
                     icon: "fire"
@@ -107,3 +138,24 @@
                     icon_color: 1, 0, 0, 1
                     # Одразу викликаємо метод стрільби
                     on_press: root.fire()
+
+
+<GameOverScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "50dp"
+        spacing: "30dp"
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+        MDLabel:
+            text: "GAME OVER"
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 1, 0, 0, 1  # Червоний колір
+
+        MDRaisedButton:
+            text: "MENU"
+            pos_hint: {"center_x": 0.5}
+            on_press:
+                # Повертає в головне меню при натисканні
+                root.manager.current = "main"
